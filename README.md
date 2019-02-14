@@ -2,5 +2,6 @@
 Named Entity Recognition
 
 
-REFERENCE
+Reference
+
 https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html
