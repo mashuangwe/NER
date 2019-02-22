@@ -230,7 +230,7 @@ class BiLSTM_CRF(object):
                         starttime, epoch + 1, step + 1, loss_train, step_num))
 
             if step + 1 == num_batches:
-                self.saver(sess, self.model_file_prefix, global_step=step_num)
+                self.saver.save(sess, self.model_file_prefix, global_step=step_num)
 
 
     def get_feed_dict(self, seqs, labels=None, dropout=None):
