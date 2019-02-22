@@ -1,36 +1,57 @@
-import pickle, os, random
 import numpy as np
+import pickle, os, random
 
-# tags, BIO
 tag2label = {
     'O': 0,
-    'B-LOC': 1, 'I-LOC': 2,
-    'B-PER': 3, 'I-PER': 4,
-    'B-ORG': 5, 'I-ORG': 6,
+    'B-PER':1, 'I_PER':2,
+    'B-LOC':3, 'I_LOC':4,
+    'B-ORG':5, 'I_ORG':6
 }
 
+
 def read_corpus(corpus_path):
+    '''
+    从训练文件读取数据
+    中   B_LOC
+    国   I_LOC
+    很   O
+    大   O
+
+    句子与句子之间用空行隔开
+
+    输出格式：
+    data = [(['中', '国', '很', '大'], [B_LOC, I_LOC, O, O]), ...]
+    '''
     data = []
     with open(corpus_path, encoding='utf-8') as fr:
         lines = fr.readlines()
         sent_, tag_ = [], []
         for line in lines:
+            line = line.strip().split('\t')
             if line != '\n':
-                char, label = line.strip().split()
-                sent_.append(char)
-                tag_.append(label)
-            else:
+                sent, tag = line.strip().split()
+                sent_.append(sent)
+                tag_.append(tag)
+            elif sent_:
                 data.append((sent_, tag_))
                 sent_, tag_ = [], []
-
     return data
 
-def vocab_build(vocab_path, corpus_path, min_count):
-    data = read_corpus(corpus_path)
-    word2id = {}
 
-    for sent_, tag_ in data:
-        for word in sent_:
+def vocab_build(vocab_path, corpus_path, min_count):
+    '''
+    建立字典
+    word2id = {word : [id, cnt]}
+    根据word的cnt去掉出现次数小于min_count的词
+    id从 1 开始
+
+    word2id = {word : id}
+    最后pickle序列化保存word2id
+    '''
+    word2id = {}
+    data = read_corpus(corpus_path)
+    for sent, _ in data:
+        for word in sent:
             if word.isdigit():
                 word = '<NUM>'
             elif ('\u0041' <= word <= '\u005a') or ('\u0061' <= word <= '\u007a'):
@@ -41,9 +62,10 @@ def vocab_build(vocab_path, corpus_path, min_count):
             else:
                 word2id[word][1] += 1
 
+    # 去掉次数小于min_count的词
     low_freq_words = []
-    for word, [_, word_freq] in word2id.items():
-        if word_freq < min_count and word != '<ENG>' and word != '<NUM>':
+    for word, [_, cnt] in word2id.items():
+        if word != '<ENG>' and word != '<NUM>' and cnt < min_count:
             low_freq_words.append(word)
 
     for word in low_freq_words:
@@ -53,7 +75,6 @@ def vocab_build(vocab_path, corpus_path, min_count):
     for word in word2id.keys():
         word2id[word] = new_id
         new_id += 1
-
     word2id['<UNK>'] = new_id
     word2id['<PAD>'] = 0
 
@@ -61,7 +82,22 @@ def vocab_build(vocab_path, corpus_path, min_count):
     with open(vocab_path, 'wb') as fw:
         pickle.dump(word2id, fw)
 
+
+def read_dictionary(vocab_path):
+    '''
+    读取pickle序列化的word2id
+    '''
+    vocab_path = os.path.join(vocab_path)
+    with open(vocab_path, 'rb') as fr:
+        word2id = pickle.load(fr)
+    print('vocab size is:', len(word2id))
+    return word2id
+
+
 def sentence2id(sent, word2id):
+    '''
+    查到句子中的各个词的id返回
+    '''
     sentence_id = []
     for word in sent:
         if word.isdigit():
@@ -70,18 +106,28 @@ def sentence2id(sent, word2id):
             word = '<ENG>'
         elif word not in word2id:
             word = '<UNK>'
-
         sentence_id.append(word2id[word])
+
     return sentence_id
 
-def read_dictionary(vocab_path):
-    vocab_path = os.path.join(vocab_path)
-    with open(vocab_path, 'rb') as fr:
-        word2id = pickle.load(fr)
-    print('vocab_size: ', len(word2id))
-    return word2id
+
+def random_embedding(word2id, embedding_dim):
+    '''
+    获得各 word 的随机vector
+    '''
+    embedding_mat = np.random.uniform(-0.25, 0.25, (len(word2id), embedding_dim))
+    embedding_mat = np.float32(embedding_mat)
+    return embedding_mat
+
 
 def batch_yield(data, batch_size, word2id, tag2label, shuffle=False):
+    '''
+    word -> id
+    tag -> label
+    产生batch_size句话的 id 和 label
+        [[id1, ..., idn], ...]
+        [[label1, ..., labeln], ...]
+    '''
     if shuffle:
         random.shuffle(data)
 
@@ -97,27 +143,27 @@ def batch_yield(data, batch_size, word2id, tag2label, shuffle=False):
         seqs.append(sent_)
         labels.append(label_)
 
-    if len(seqs) != 0:
+    if seqs:
         yield seqs, labels
+
 
 def pad_sequences(sequences, pad_mark=0):
     '''
-    将各sequence补0成一样长
+    将不等长序列pad成一样长度
+    返回pad后的序列，和序列pad之前的长度
     '''
-    max_len = max(map(lambda x: len(x), sequences))
     seq_list, seq_len_list = [], []
+    max_len = max(map(lambda x : len(x), sequences))
     for seq in sequences:
         seq = list(seq)
-        seq_ = seq[:max_len] + [pad_mark] * max((max_len - len(seq), 0))
-        seq_list.append(seq_)
-        seq_len_list.append(min(len(seq), max_len))
+        seq_len_list.append(len(seq))
+
+        seq = seq[:max_len] + [pad_mark] * max(0, max_len - len(seq))
+        seq_list.append(seq)
 
     return seq_list, seq_len_list
 
-def random_embeddings(word2id, embedding_dim):
-    embedding_mat = np.random.uniform(-0.25, 0.25, (len(word2id), embedding_dim))
-    embedding_mat = np.float32(embedding_mat)
-    return embedding_mat
+
 
 
 
