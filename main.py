@@ -3,7 +3,7 @@ import numpy as np
 import os, time
 from model import BiLSTM_CRF
 from utils import get_logger
-from data import read_corpus, read_dictionary, tag2label, random_embedding
+from data import get_train_data_len, read_dictionary, tag2label, random_embedding
 
 flags = tf.app.flags
 flags.DEFINE_string('mode', 'train', 'train/test/demo')
@@ -45,7 +45,7 @@ flags.DEFINE_boolean("existing_servers", False, "Whether servers already exists.
 
 flags.DEFINE_string("ps_hosts", "172.16.23.5:2225", "Comma-separated list of hostname:port pairs")
 flags.DEFINE_string("worker_hosts",
-                    "172.16.23.5:2226,172.16.23.5:2228",
+                    "172.16.23.5:2226,172.16.23.5:2227,172.16.23.5:2228,172.16.23.5:2229",
                     "Comma-separated list of hostname:port pairs")
 
 # flags.DEFINE_string("worker_hosts",
@@ -67,13 +67,15 @@ else:
 # read corpus and get training data
 if FLAGS.mode != 'demo':
     train_path = os.path.join('.', FLAGS.train_data_path, 'train_data')
-    # test_path = os.path.join('.', FLAGS.test_data_path, 'test_data')
-    train_data = read_corpus(train_path)
-    # test_data = read_corpus(test_path)
+    train_data_len = get_train_data_len(train_path)
+#     test_path = os.path.join('.', FLAGS.test_data_path, 'test_data')
+#     train_data = read_corpus(train_path)
+#     test_data = read_corpus(test_path)
 
 
 # path setting
 paths = {}
+paths['train_data_source'] = './train_data/train_data'
 
 # output_path
 output_path = os.path.join('./', 'output', time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime()))
@@ -150,7 +152,7 @@ if FLAGS.mode == 'train':
                            word2id=word2id,
                            tag2label=tag2label,
                            paths=paths,
-                           train_data=train_data)
+                           train_data_len=train_data_len)
         model.build_graph()
 
 

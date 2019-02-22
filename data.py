@@ -9,6 +9,48 @@ tag2label = {
 }
 
 
+def get_train_data_len(corpus_path):
+    # line_num = 0
+    # with open(corpus_path, encoding='utf-8') as fr:
+    #     line = fr.readline()
+    #     while line:
+    #         if line == '\n':
+    #             line_num += 1
+    #             if line_num % 1000000 == 0:
+    #                 print(line_num)
+    #         line = fr.readline()
+    line_num = 16823089
+    print(line_num)
+    return line_num
+
+
+# def read_corpus(corpus_path):
+#     '''
+#     从训练文件读取数据
+#     中   B_LOC
+#     国   I_LOC
+#     很   O
+#     大   O
+#
+#     句子与句子之间用空行隔开
+#
+#     输出格式：
+#     data = [(['中', '国', '很', '大'], [B_LOC, I_LOC, O, O]), ...]
+#     '''
+#     data = []
+#     with open(corpus_path, encoding='utf-8') as fr:
+#         lines = fr.readlines()
+#         sent_, tag_ = [], []
+#         for line in lines:
+#             if line != '\n':
+#                 sent, tag = line.strip().split()
+#                 sent_.append(sent)
+#                 tag_.append(tag)
+#             elif sent_:
+#                 data.append((sent_, tag_))
+#                 sent_, tag_ = [], []
+#     return data
+
 def read_corpus(corpus_path):
     '''
     从训练文件读取数据
@@ -32,9 +74,8 @@ def read_corpus(corpus_path):
                 sent_.append(sent)
                 tag_.append(tag)
             elif sent_:
-                data.append((sent_, tag_))
-                sent_, tag_ = [], []
-    return data
+                yield data.append((sent_, tag_))
+                data, sent_, tag_ = [], [], []
 
 
 def vocab_build(vocab_path, corpus_path, min_count):
@@ -119,7 +160,7 @@ def random_embedding(word2id, embedding_dim):
     return embedding_mat
 
 
-def batch_yield(data, batch_size, word2id, tag2label, shuffle=False):
+def batch_yield(corpus_path, batch_size, word2id, tag2label):
     '''
     word -> id
     tag -> label
@@ -127,10 +168,8 @@ def batch_yield(data, batch_size, word2id, tag2label, shuffle=False):
         [[id1, ..., idn], ...]
         [[label1, ..., labeln], ...]
     '''
-    if shuffle:
-        random.shuffle(data)
-
     seqs, labels = [], []
+    data = read_corpus(corpus_path)
     for sent_, tag_ in data:
         sent_ = sentence2id(sent_, word2id)
         label_ = [tag2label[tag] for tag in tag_]
@@ -162,7 +201,31 @@ def pad_sequences(sequences, pad_mark=0):
 
     return seq_list, seq_len_list
 
-
+# def batch_yield(data, batch_size, word2id, tag2label, shuffle=False):
+#     '''
+#     word -> id
+#     tag -> label
+#     产生batch_size句话的 id 和 label
+#         [[id1, ..., idn], ...]
+#         [[label1, ..., labeln], ...]
+#     '''
+#     if shuffle:
+#         random.shuffle(data)
+#
+#     seqs, labels = [], []
+#     for sent_, tag_ in data:
+#         sent_ = sentence2id(sent_, word2id)
+#         label_ = [tag2label[tag] for tag in tag_]
+#
+#         if len(seqs) == batch_size:
+#             yield seqs, labels
+#             seqs, labels = [], []
+#
+#         seqs.append(sent_)
+#         labels.append(label_)
+#
+#     if seqs:
+#         yield seqs, labels
 
 
 

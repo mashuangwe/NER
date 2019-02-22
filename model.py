@@ -9,7 +9,7 @@ from utils import get_logger
 class BiLSTM_CRF(object):
     def __init__(self, FLAGS, embeddings, server,
                  word2id, num_workers,
-                 tag2label, paths, train_data):
+                 tag2label, paths, train_data_len):
         self.FLAGS = FLAGS
         self.shuffle = FLAGS.shuffle
         self.clip_grad = FLAGS.clip
@@ -27,8 +27,10 @@ class BiLSTM_CRF(object):
         self.batch_size = FLAGS.batch_size
         self.word2id = word2id
         self.dropout_keep_prob = FLAGS.dropout
-        self.train_data = train_data
+        # self.train_data = train_data
+        self.train_data_len = train_data_len
 
+        self.train_data_source = paths['train_data_source']
         self.train_path = paths['train_path']
         self.log_path = paths['log_path']
         self.logger = get_logger(paths['log_file'])
@@ -207,14 +209,15 @@ class BiLSTM_CRF(object):
                 sv.start_queue_runners(sess, [chief_queue_runner])
 
             for epoch in range(self.epoch_num):
-                self.run_one_epoch(sess, self.train_data, self.tag2label, epoch)
+                self.run_one_epoch(sess, self.train_data_source, self.train_data_len, self.tag2label, epoch)
 
 
-    def run_one_epoch(self, sess, train, tag2label, epoch):
-        num_batches = (len(train) + self.batch_size - 1) // self.batch_size
+    def run_one_epoch(self, sess, train_data_source, train_data_len, tag2label, epoch):
+        num_batches = (train_data_len + self.batch_size - 1) // self.batch_size
 
         starttime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-        batches = batch_yield(train, self.batch_size, self.word2id, self.tag2label, shuffle=self.shuffle)
+        # batches = batch_yield(train, self.batch_size, self.word2id, self.tag2label, shuffle=self.shuffle)
+        batches = batch_yield(train_data_source, self.batch_size, self.word2id, self.tag2label)
 
         for step, (seqs, labels) in enumerate(batches):
             sys.stdout.write('processing: {} batch / {} batches.'.format(step + 1, num_batches) + '\r')
