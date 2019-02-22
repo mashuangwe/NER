@@ -3,9 +3,9 @@ import pickle, os, random
 
 tag2label = {
     'O': 0,
-    'B-PER':1, 'I_PER':2,
-    'B-LOC':3, 'I_LOC':4,
-    'B-ORG':5, 'I_ORG':6
+    'B-PER':1, 'I-PER':2,
+    'B-LOC':3, 'I-LOC':4,
+    'B-ORG':5, 'I-ORG':6
 }
 
 

@@ -1,4 +1,4 @@
-import time
+import time, sys
 import tensorflow as tf
 from tensorflow.contrib.rnn import LSTMCell
 from tensorflow.contrib.crf import crf_log_likelihood
@@ -18,7 +18,7 @@ class BiLSTM_CRF(object):
         self.epoch_num = FLAGS.epoch
         self.num_workers = num_workers
         self.embeddings = embeddings
-        self.embedding_update = FLAGS.update_embedding
+        self.embedding_update = FLAGS.update_embedding 
         self.hidden_dim = FLAGS.hidden_dim
         self.optimizer = FLAGS.optimizer
         self.batch_size = FLAGS.batch_size
@@ -26,7 +26,7 @@ class BiLSTM_CRF(object):
         self.num_tags = len(tag2label)
         self.batch_size = FLAGS.batch_size
         self.word2id = word2id
-        self.dropout = FLAGS.dropout
+        self.dropout_keep_prob = FLAGS.dropout
         self.train_data = train_data
 
         self.train_path = paths['train_path']
@@ -38,8 +38,9 @@ class BiLSTM_CRF(object):
     def build_graph(self):
         self.add_placeholders()
         self.lookup_layer_op()
-        self.BiLSTM_layer_op()
+        self.biLSTM_layer_op()
         self.loss_op()
+        self.train()
 
 
     def add_placeholders(self):
@@ -61,7 +62,7 @@ class BiLSTM_CRF(object):
         self.word_embeddings = tf.nn.dropout(self.word_embeddings, self.dropout_pl)
 
 
-    def BiLSTM_layer_op(self):
+    def biLSTM_layer_op(self):
         with tf.variable_scope('bi-lstm'):
             cell_fw = LSTMCell(self.hidden_dim)
             cell_bw = LSTMCell(self.hidden_dim)
@@ -101,7 +102,7 @@ class BiLSTM_CRF(object):
             inputs=self.logits,
             tag_indices=self.labels,
             sequence_lengths=self.sequence_lengths)
-        self.loss = tf.reduce_mean(-log_likelihood)
+        self.loss = -tf.reduce_mean(log_likelihood)
 
 
     def train(self):
@@ -136,7 +137,7 @@ class BiLSTM_CRF(object):
                 name='bilstm_crf_sync_replicas')
 
             grad_and_vars = optim.compute_gradients(self.loss)
-            grad_and_vars_clip = [[tf.clip_by_value(g, -self.clip_grad, self.clip_grad) for g, v in grad_and_vars]]
+            grad_and_vars_clip = [[tf.clip_by_value(g, -self.clip_grad, self.clip_grad), v] for g, v in grad_and_vars]
             self.train_op = optim.apply_gradients(grad_and_vars_clip, global_step=self.global_step)
 
             self.is_chief = self.FLAGS.task_index == 0
@@ -216,8 +217,10 @@ class BiLSTM_CRF(object):
         batches = batch_yield(train, self.batch_size, self.word2id, self.tag2label, shuffle=self.shuffle)
 
         for step, (seqs, labels) in enumerate(batches):
+            sys.stdout.write('processing: {} batch / {} batches.'.format(step + 1, num_batches) + '\r')
+			
             step_num = epoch * num_batches + step + 1
-            feed_dict, _ = self.get_feed_dict(seqs, labels, self.dropout)
+            feed_dict, _ = self.get_feed_dict(seqs, labels, self.dropout_keep_prob)
             _, loss_train, _ = sess.run(
                 [self.train_op, self.loss, self.global_step], feed_dict=feed_dict)
 
@@ -234,7 +237,7 @@ class BiLSTM_CRF(object):
         '''
         返回各句子的各 word 的 id 以及句子长度， 甚至各句子的各 word 的 label
         '''
-        word_ids, seq_len_lists = pad_sequences(seqs)
+        word_ids, seq_len_lists = pad_sequences(seqs, pad_mark=0)
         feed_dict = {self.word_ids: word_ids, self.sequence_lengths: seq_len_lists}
 
         if labels is not None:

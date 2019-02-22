@@ -81,13 +81,13 @@ if not os.path.exists(output_path):
     os.makedirs(output_path)
 
 # model_path
-model_path = os.path.join('./', output_path, 'model')
+model_path = os.path.join(output_path, 'model')
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 paths['model_file_prefix'] = os.path.join(model_path, 'model')
 
 # log_path
-log_path = os.path.join('./', output_path, 'log')
+log_path = os.path.join(output_path, 'log')
 paths['log_path'] = log_path
 if not os.path.exists(log_path):
     os.makedirs(log_path)
@@ -97,7 +97,7 @@ paths['log_file'] = log_file
 get_logger(log_file).info(str(FLAGS))
 
 # train path
-train_path = os.path.join('./', output_path, 'train')
+train_path = os.path.join(output_path, 'train')
 if not os.path.exists(train_path):
     os.makedirs(train_path)
 paths['train_path'] = train_path
