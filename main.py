@@ -9,12 +9,12 @@ flags = tf.app.flags
 flags.DEFINE_string('mode', 'train', 'train/test/demo')
 flags.DEFINE_string('train_data_path', 'train_data', 'train data path')
 flags.DEFINE_string('test_data_path', 'test_data', 'test data path')
-flags.DEFINE_string('word2vec', 'word2vec', 'word vector path')
+flags.DEFINE_string('word2id', 'word2id', 'word vector path')
 flags.DEFINE_string('test_data', 'test_data', 'test data source')
 flags.DEFINE_integer('batch_size', 128, 'sample of each minibatch')
 flags.DEFINE_integer('epoch', 2, 'epoch of training')
 flags.DEFINE_integer('hidden_dim', 100, 'dim of hidden state')
-flags.DEFINE_string('optmizer', 'Adam', 'Adam/Adadelta/Adagrad/RMSProp/Momentum/SGD')
+flags.DEFINE_string('optimizer', 'Adam', 'Adam/Adadelta/Adagrad/RMSProp/Momentum/SGD')
 flags.DEFINE_boolean('CRF', True, 'use CRF at the top layer. If False, use Softmax')
 flags.DEFINE_float('lr', 0.001, 'learning rate')
 flags.DEFINE_float('clip', 5.0, 'gradient clipping')
@@ -57,7 +57,7 @@ flags.DEFINE_string("job_name", None, "job name: worker or ps")
 FLAGS = flags.FLAGS
 
 # get word embeddings
-word2id = read_dictionary(os.path.join('./', FLAGS.word2vec, 'word2id.pkl'))
+word2id = read_dictionary(os.path.join('./', FLAGS.word2id, 'word2id.pkl'))
 if FLAGS.pretrain_embedding == 'random':
     embeddings = random_embedding(word2id, FLAGS.embedding_dim)
 else:
@@ -109,7 +109,7 @@ if FLAGS.mode == 'train':
         raise ValueError('must specify an explicit `task_index`')
 
     print('job_name = %s' % FLAGS.job_name)
-    print('task_name = %s' % FLAGS.task_name)
+    print('task_index = %s' % FLAGS.task_index)
 
     # Construct the cluster and start the server
     ps_spec = FLAGS.ps_hosts.split(',')
@@ -140,7 +140,7 @@ if FLAGS.mode == 'train':
         # The ps use CPU and workers use corresponding GPU
 
     with tf.device(tf.train.replica_device_setter(
-        worker_spec=worker_device,
+        worker_device=worker_device,
         ps_device='/job:ps/cpu:0',
         cluster=cluster)):
         model = BiLSTM_CRF(FLAGS=FLAGS,

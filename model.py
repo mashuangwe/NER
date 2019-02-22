@@ -9,7 +9,7 @@ from utils import get_logger
 class BiLSTM_CRF(object):
     def __init__(self, FLAGS, embeddings, server,
                  embedding_update, word2id, num_workers,
-                 tag2label, logger, paths, train_data):
+                 tag2label, paths, train_data):
         self.FLAGS = FLAGS
         self.shuffle = FLAGS.shuffle
         self.clip_grad = FLAGS.clip
@@ -21,7 +21,6 @@ class BiLSTM_CRF(object):
         self.embedding_update = embedding_update
         self.hidden_dim = FLAGS.hidden_dim
         self.optimizer = FLAGS.optimizer
-        self.logger = logger
         self.batch_size = FLAGS.batch_size
         self.tag2label = tag2label
         self.num_tags = len(tag2label)
@@ -70,7 +69,7 @@ class BiLSTM_CRF(object):
             (output_fw_seq, output_bw_seq), _ = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw=cell_fw,
                 cell_bw=cell_bw,
-                sequence_lengths=self.sequence_lengths,
+                sequence_length=self.sequence_lengths,
                 inputs=self.word_embeddings,
                 dtype=tf.float32)
             '''

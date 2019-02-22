@@ -27,7 +27,6 @@ def read_corpus(corpus_path):
         lines = fr.readlines()
         sent_, tag_ = [], []
         for line in lines:
-            line = line.strip().split('\t')
             if line != '\n':
                 sent, tag = line.strip().split()
                 sent_.append(sent)
