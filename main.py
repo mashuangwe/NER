@@ -147,7 +147,6 @@ if FLAGS.mode == 'train':
                            embeddings=embeddings,
                            server=server,
                            num_workers=num_workers,
-                           embedding_update=FLAGS.update_embedding,
                            word2id=word2id,
                            tag2label=tag2label,
                            paths=paths,

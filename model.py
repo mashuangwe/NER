@@ -8,7 +8,7 @@ from utils import get_logger
 
 class BiLSTM_CRF(object):
     def __init__(self, FLAGS, embeddings, server,
-                 embedding_update, word2id, num_workers,
+                 word2id, num_workers,
                  tag2label, paths, train_data):
         self.FLAGS = FLAGS
         self.shuffle = FLAGS.shuffle
@@ -18,7 +18,7 @@ class BiLSTM_CRF(object):
         self.epoch_num = FLAGS.epoch
         self.num_workers = num_workers
         self.embeddings = embeddings
-        self.embedding_update = embedding_update
+        self.embedding_update = FLAGS.update_embedding
         self.hidden_dim = FLAGS.hidden_dim
         self.optimizer = FLAGS.optimizer
         self.batch_size = FLAGS.batch_size
