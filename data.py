@@ -24,33 +24,6 @@ def get_train_data_len(corpus_path):
     return line_num
 
 
-# def read_corpus(corpus_path):
-#     '''
-#     从训练文件读取数据
-#     中   B_LOC
-#     国   I_LOC
-#     很   O
-#     大   O
-#
-#     句子与句子之间用空行隔开
-#
-#     输出格式：
-#     data = [(['中', '国', '很', '大'], [B_LOC, I_LOC, O, O]), ...]
-#     '''
-#     data = []
-#     with open(corpus_path, encoding='utf-8') as fr:
-#         lines = fr.readlines()
-#         sent_, tag_ = [], []
-#         for line in lines:
-#             if line != '\n':
-#                 sent, tag = line.strip().split()
-#                 sent_.append(sent)
-#                 tag_.append(tag)
-#             elif sent_:
-#                 data.append((sent_, tag_))
-#                 sent_, tag_ = [], []
-#     return data
-
 def read_corpus(corpus_path):
     '''
     从训练文件读取数据
@@ -64,18 +37,19 @@ def read_corpus(corpus_path):
     输出格式：
     data = [(['中', '国', '很', '大'], [B_LOC, I_LOC, O, O]), ...]
     '''
-    data = []
     with open(corpus_path, encoding='utf-8') as fr:
-        lines = fr.readlines()
+        line = fr.readline()
         sent_, tag_ = [], []
-        for line in lines:
+        while line:
             if line != '\n':
                 sent, tag = line.strip().split()
                 sent_.append(sent)
                 tag_.append(tag)
             elif sent_:
-                yield data.append((sent_, tag_))
-                data, sent_, tag_ = [], [], []
+                yield sent_, tag_
+                sent_, tag_ = [], []
+
+            line = fr.readline()
 
 
 def vocab_build(vocab_path, corpus_path, min_count):
@@ -122,6 +96,8 @@ def vocab_build(vocab_path, corpus_path, min_count):
     with open(vocab_path, 'wb') as fw:
         pickle.dump(word2id, fw)
 
+
+# vocab_build('./word2id/word2id.pkl', './train_data/train_data', 100)
 
 def read_dictionary(vocab_path):
     '''
