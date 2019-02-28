@@ -24,7 +24,7 @@ def get_entity(tag_seq, char_seq):
 def get_PER_entity(tag_seq, char_seq):
     PER, temp = [], []
     for tag, char in zip(tag_seq, char_seq):
-        if tag == 'B_PER' or tag == 'I_PER':
+        if tag == 'B-PER' or tag == 'I-PER':
             temp.append(char)
         elif temp:
             PER.append(''.join(temp))
@@ -36,7 +36,7 @@ def get_PER_entity(tag_seq, char_seq):
 def get_LOC_entity(tag_seq, char_seq):
     LOC, temp = [], []
     for tag, char in zip(tag_seq, char_seq):
-        if tag == 'B_LOC' or tag == 'I_LOC':
+        if tag == 'B-LOC' or tag == 'I-LOC':
             temp.append(char)
         elif temp:
             LOC.append(''.join(temp))
@@ -48,7 +48,7 @@ def get_LOC_entity(tag_seq, char_seq):
 def get_ORG_entity(tag_seq, char_seq):
     ORG, temp = [], []
     for tag, char in zip(tag_seq, char_seq):
-        if tag == 'B_ORG' or tag == 'I_ORG':
+        if tag == 'B-ORG' or tag == 'I-ORG':
             temp.append(char)
         elif temp:
             ORG.append(''.join(temp))
@@ -60,7 +60,7 @@ def get_ORG_entity(tag_seq, char_seq):
 def get_DUTY_entity(tag_seq, char_seq):
     DUTY, temp = [], []
     for tag, char in zip(tag_seq, char_seq):
-        if tag == 'B_DUTY' or tag == 'I_DUTY':
+        if tag == 'B-DUTY' or tag == 'I-DUTY':
             temp.append(char)
         elif temp:
             DUTY.append(''.join(temp))

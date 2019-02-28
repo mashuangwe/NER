@@ -13,7 +13,7 @@ flags.DEFINE_string('word2id', 'word2id', 'word vector path')
 flags.DEFINE_string('test_data', 'test_data', 'test data source')
 flags.DEFINE_integer('batch_size', 128, 'sample of each minibatch')
 flags.DEFINE_integer('epoch', 2, 'epoch of training')
-flags.DEFINE_integer('hidden_dim', 100, 'dim of hidden state')
+flags.DEFINE_integer('hidden_dim', 120, 'dim of hidden state')
 flags.DEFINE_string('optimizer', 'Adam', 'Adam/Adadelta/Adagrad/RMSProp/Momentum/SGD')
 flags.DEFINE_boolean('CRF', True, 'use CRF at the top layer. If False, use Softmax')
 flags.DEFINE_float('lr', 0.001, 'learning rate')
@@ -78,9 +78,12 @@ paths = {}
 paths['train_data_source'] = './train_data/train_data'
 
 # output_path
-output_path = os.path.join('./', 'output', time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime()))
-if not os.path.exists(output_path):
-    os.makedirs(output_path)
+if FLAGS.mode == 'train':
+    output_path = os.path.join('./', 'output', time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime()))
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+else:
+    output_path = './output/2019-02-23-17-04-01_bk/'
 
 # model_path
 model_path = os.path.join(output_path, 'model')
@@ -103,6 +106,7 @@ train_path = os.path.join(output_path, 'train')
 if not os.path.exists(train_path):
     os.makedirs(train_path)
 paths['train_path'] = train_path
+
 
 if FLAGS.mode == 'train':
     if FLAGS.job_name is None or FLAGS.job_name == '':
@@ -154,8 +158,11 @@ if FLAGS.mode == 'train':
                            paths=paths,
                            train_data_len=train_data_len)
         model.build_graph()
+        model.train()
 
 elif FLAGS.mode == 'demo':
+    model_path += '/'
+    print('model_path:', model_path)
     ckpt_file = tf.train.latest_checkpoint(model_path)
     print(ckpt_file)
     paths['model_path'] = ckpt_file
@@ -168,10 +175,10 @@ elif FLAGS.mode == 'demo':
                        paths=paths,
                        train_data_len=None)
     model.build_graph()
-    # saver = tf.train.Saver()
+    saver = tf.train.Saver()
     with tf.Session() as sess:
         print('============= demo =============')
-        # saver.restore(sess, ckpt_file)
+        saver.restore(sess, ckpt_file)
         while 1:
             print('Please input your sentence:')
             demo_sent = input('input:')

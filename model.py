@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.contrib.rnn import LSTMCell
 from tensorflow.contrib.crf import viterbi_decode
 from tensorflow.contrib.crf import crf_log_likelihood
-from data import pad_sequences, batch_yield, batch_yield_demo
+from data import pad_sequences, batch_yield, batch_yield_demo, tag2label
 from utils import get_logger
 
 
@@ -43,7 +43,12 @@ class BiLSTM_CRF(object):
         self.lookup_layer_op()
         self.biLSTM_layer_op()
         self.loss_op()
-        # self.train()
+        self.train_prepare()
+        self.init_op()
+
+
+    def init_op(self):
+        self.init_op = tf.global_variables_initializer()
 
 
     def add_placeholders(self):
@@ -108,7 +113,7 @@ class BiLSTM_CRF(object):
         self.loss = -tf.reduce_mean(log_likelihood)
 
 
-    def train(self):
+    def train_prepare(self):
         with tf.variable_scope('train_step'):
             self.global_step = tf.Variable(0, trainable=False, name='global_step')
             if self.optimizer == 'Adam':
@@ -128,34 +133,39 @@ class BiLSTM_CRF(object):
 
             # distributed optm
             if self.FLAGS.sync_replicas:
-                if self.FLAGS.replicas_to_aggregate is None:
-                    self.replicas_to_aggregate = self.num_workers
-                else:
-                    self.replicas_to_aggregate = self.FLAGS.replicas_to_aggregate
+                if self.FLAGS.sync_replicas:
+                    if self.FLAGS.replicas_to_aggregate is None:
+                        self.replicas_to_aggregate = self.num_workers
+                    else:
+                        self.replicas_to_aggregate = self.FLAGS.replicas_to_aggregate
 
-            optim = tf.train.SyncReplicasOptimizer(
-                opt=optim,
-                replicas_to_aggregate=self.replicas_to_aggregate,
-                total_num_replicas=self.num_workers,
-                name='bilstm_crf_sync_replicas')
+                optim = tf.train.SyncReplicasOptimizer(
+                    opt=optim,
+                    replicas_to_aggregate=self.replicas_to_aggregate,
+                    total_num_replicas=self.num_workers,
+                    name='bilstm_crf_sync_replicas')
 
             grad_and_vars = optim.compute_gradients(self.loss)
             grad_and_vars_clip = [[tf.clip_by_value(g, -self.clip_grad, self.clip_grad), v] for g, v in grad_and_vars]
             self.train_op = optim.apply_gradients(grad_and_vars_clip, global_step=self.global_step)
+            self.optim = optim
 
+
+    def train(self):
+        with tf.variable_scope('train_step'):
             self.is_chief = self.FLAGS.task_index == 0
             if self.FLAGS.sync_replicas:
-                local_init_op = optim.local_step_init_op
+                local_init_op = self.optim.local_step_init_op
                 if self.is_chief:
-                    local_init_op = optim.chief_init_op
+                    local_init_op = self.optim.chief_init_op
 
-                ready_for_local_init_op = optim.ready_for_local_init_op
+                ready_for_local_init_op = self.optim.ready_for_local_init_op
 
                 # Initial token and chief queue runners required by the sync_replicas mode
-                chief_queue_runner = optim.get_chief_queue_runner()
-                sync_init_op = optim.get_init_tokens_op()
+                chief_queue_runner = self.optim.get_chief_queue_runner()
+                sync_init_op = self.optim.get_init_tokens_op()
 
-            self.init_op = tf.global_variables_initializer()
+            # self.init_op = tf.global_variables_initializer()
             self.saver = tf.train.Saver(tf.global_variables())
 
             if self.FLAGS.sync_replicas:
@@ -267,14 +277,14 @@ class BiLSTM_CRF(object):
     def demo_one(self, sess, sent):
         label_list = []
         for seqs, labels in batch_yield_demo(sent, self.batch_size, self.word2id, self.tag2label):
-            print('seqs:', seqs)
-            print('labels:', labels)
             label_list_, _ = self.predict_one_batch(sess, seqs)
             label_list.extend(label_list_)
+        print('label_list:', label_list)
         label2tag = {}
         for tag, label in self.tag2label.items():
             label2tag[label] = tag
         tag = [label2tag[label] for label in label_list[0]]
+        print(tag)
         return tag
 
 
