@@ -5,7 +5,8 @@ tag2label = {
     'O': 0,
     'B-PER':1, 'I-PER':2,
     'B-LOC':3, 'I-LOC':4,
-    'B-ORG':5, 'I-ORG':6
+    'B-ORG':5, 'I-ORG':6,
+    'B-DUTY':7, 'I-DUTY':8
 }
 
 
@@ -147,6 +148,30 @@ def batch_yield(corpus_path, batch_size, word2id, tag2label):
     seqs, labels = [], []
     data = read_corpus(corpus_path)
     for sent_, tag_ in data:
+        sent_ = sentence2id(sent_, word2id)
+        label_ = [tag2label[tag] for tag in tag_]
+
+        if len(seqs) == batch_size:
+            yield seqs, labels
+            seqs, labels = [], []
+
+        seqs.append(sent_)
+        labels.append(label_)
+
+    if seqs:
+        yield seqs, labels
+
+
+def batch_yield_demo(data, batch_size, word2id, tag2label):
+    '''
+        word -> id
+        tag -> label
+        产生batch_size句话的 id 和 label
+            [[id1, ..., idn], ...]
+            [[label1, ..., labeln], ...]
+        '''
+    seqs, labels = [], []
+    for (sent_, tag_) in data:
         sent_ = sentence2id(sent_, word2id)
         label_ = [tag2label[tag] for tag in tag_]
 

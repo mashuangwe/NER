@@ -1,8 +1,9 @@
 import time, sys
 import tensorflow as tf
 from tensorflow.contrib.rnn import LSTMCell
+from tensorflow.contrib.crf import viterbi_decode
 from tensorflow.contrib.crf import crf_log_likelihood
-from data import pad_sequences, batch_yield
+from data import pad_sequences, batch_yield, batch_yield_demo
 from utils import get_logger
 
 
@@ -42,7 +43,7 @@ class BiLSTM_CRF(object):
         self.lookup_layer_op()
         self.biLSTM_layer_op()
         self.loss_op()
-        self.train()
+        # self.train()
 
 
     def add_placeholders(self):
@@ -251,6 +252,30 @@ class BiLSTM_CRF(object):
             feed_dict[self.dropout_pl] = dropout
 
         return feed_dict, seq_len_lists
+
+
+    def predict_one_batch(self, sess, seqs):
+        feed_dict, seq_len_list = self.get_feed_dict(seqs, dropout=1.0)
+        logits, transition_params = sess.run([self.logits, self.transition_params], feed_dict=feed_dict)
+        label_list = []
+        for logit, seq_len in zip(logits, seq_len_list):
+            viterbi_seqs, _ = viterbi_decode(logit[:seq_len], transition_params)
+            label_list.append(viterbi_seqs)
+        return label_list, seq_len_list
+
+
+    def demo_one(self, sess, sent):
+        label_list = []
+        for seqs, labels in batch_yield_demo(sent, self.batch_size, self.word2id, self.tag2label):
+            print('seqs:', seqs)
+            print('labels:', labels)
+            label_list_, _ = self.predict_one_batch(sess, seqs)
+            label_list.extend(label_list_)
+        label2tag = {}
+        for tag, label in self.tag2label.items():
+            label2tag[label] = tag
+        tag = [label2tag[label] for label in label_list[0]]
+        return tag
 
 
 

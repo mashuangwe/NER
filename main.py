@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os, time
 from model import BiLSTM_CRF
-from utils import get_logger
+from utils import get_logger, get_entity
 from data import get_train_data_len, read_dictionary, tag2label, random_embedding
 
 flags = tf.app.flags
@@ -155,8 +155,35 @@ if FLAGS.mode == 'train':
                            train_data_len=train_data_len)
         model.build_graph()
 
-
-
+elif FLAGS.mode == 'demo':
+    ckpt_file = tf.train.latest_checkpoint(model_path)
+    print(ckpt_file)
+    paths['model_path'] = ckpt_file
+    model = BiLSTM_CRF(FLAGS=FLAGS,
+                       embeddings=embeddings,
+                       server=None,
+                       num_workers=None,
+                       word2id=word2id,
+                       tag2label=tag2label,
+                       paths=paths,
+                       train_data_len=None)
+    model.build_graph()
+    # saver = tf.train.Saver()
+    with tf.Session() as sess:
+        print('============= demo =============')
+        # saver.restore(sess, ckpt_file)
+        while 1:
+            print('Please input your sentence:')
+            demo_sent = input('input:')
+            if demo_sent == '' or demo_sent.isspace():
+                print('see you next time!')
+                break
+            else:
+                demo_sent = list(demo_sent.strip())
+                demo_data = [(demo_sent, ['O'] * len(demo_sent))]
+                tag = model.demo_one(sess, demo_data)
+                PER, LOC, ORG, DUTY = get_entity(tag, demo_sent)
+                print('PER: {}\nLOC: {}\nORG: {}\nDUTY: {}'.format(PER, LOC, ORG, DUTY))
 
 
 
